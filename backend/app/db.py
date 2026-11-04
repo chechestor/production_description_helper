@@ -6,7 +6,7 @@
 import sqlite3
 from pathlib import Path
 
-from .config import PROJECT_ROOT, settings
+from . import config
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -21,8 +21,8 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at);
 
 def database_file() -> Path:
     """Путь к файлу БД; относительный путь считается от корня проекта."""
-    path = Path(settings.database_path)
-    return path if path.is_absolute() else PROJECT_ROOT / path
+    path = Path(config.settings.database_path)
+    return path if path.is_absolute() else config.PROJECT_ROOT / path
 
 
 def connect() -> sqlite3.Connection:

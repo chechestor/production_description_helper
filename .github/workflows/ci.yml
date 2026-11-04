@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    name: Быстрые тесты (без LLM)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"  # как в backend/Dockerfile
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Установка зависимостей
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: pytest без тестов с живой LLM
+        run: pytest -m "not llm"
+
+  build:
+    name: Сборка контейнеров
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .env из примера (без ключа)
+        run: cp .env.example .env
+
+      - name: Проверка docker-compose.yml
+        run: docker compose config --quiet
+
+      - name: Сборка образов
+        run: docker compose build
+
+      - name: Образ Phoenix с зафиксированным тегом существует
+        run: docker compose pull phoenix
