@@ -46,6 +46,12 @@ def value_found(value: str, haystack: str) -> bool:
     return bool(parts) and all(p in haystack for p in parts)
 
 
+def same_value_parts(value: str) -> bool:
+    """Все варианты значения через « / » после нормализации совпадают («2.5 / 2,5», «IP-40 / IP40»)."""
+    variants = {normalize(v).replace("-", "") for v in value.split(" / ") if v.strip()}
+    return len(variants) == 1 and " / " in value
+
+
 def number_found(number: str, haystack: str) -> bool:
     """e): число встречается во входе как отдельное число, а не часть другого."""
     n = re.escape(normalize(number))
@@ -77,7 +83,9 @@ def find_violations(card: ModelCard, product: dict) -> list[str]:
 
     for spec in card.key_specs:
         if spec.value != NO_DATA and not value_found(spec.value, haystack):
-            violations.append(f"Значение «{spec.value}» характеристики «{spec.name}» не найдено во входных данных")
+            violations.append(
+                f"Значение «{spec.value}» характеристики «{spec.name}» не найдено во входных данных дословно"
+            )
 
     seen: set[str] = set()
     for number in _NUMBER.findall(card.seo_description):

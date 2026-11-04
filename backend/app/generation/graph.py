@@ -76,7 +76,12 @@ def _assemble(state: GenerationState) -> GenerationState:
             missing.append(item)
 
     warnings = list(state.get("input_warnings", []))
-    warnings += [f"противоречие в данных: {p}" for p in model_card.data_conflicts]
+    values = {s.name: s.value for s in card.key_specs}
+    warnings += [
+        f"противоречие в данных: {p}"
+        for p in model_card.data_conflicts
+        if not checks.same_value_parts(values.get(p, ""))  # одно значение в разном написании — не противоречие
+    ]
     warnings += state.get("violations", [])
 
     response = GenerateResponse(
