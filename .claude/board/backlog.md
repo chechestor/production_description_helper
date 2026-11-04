@@ -83,7 +83,7 @@
 - [ ] Backend стартует без ключа (в контейнере по F002 и локально командой из README). `llm_configured` = false, если ключа нет.
 - [ ] `.env.example` есть, в нём все переменные из таблицы, у каждой, кроме `OPENAI_API_KEY`, заполнено значение по умолчанию. Значения ключа нет.
 - [ ] После `cp .env.example .env` и вписанного ключа `docker compose up` поднимает систему без правки других переменных.
-- [ ] `.gitignore` исключает `.env`, `.claude/local/`, `**/scratch/`, `__pycache__/`, `.venv/`, `node_modules/`, сборку фронтенда и содержимое `data/`, кроме `data/.gitkeep`.
+- [ ] `.gitignore` исключает `.env`, `.claude/local/`, `**/scratch/`, `__pycache__/`, `.venv/`, `node_modules/`, сборку фронтенда, содержимое `data/`, кроме `data/.gitkeep`, а также `.task/` (ТЗ и переписка с работодателем) и `claude-team.zip` (Owner, 2026-11-04: «Да, допиши»).
 - [ ] Поиск по репозиторию не находит строку ключа. Если `.env` существует, `git status` его не показывает.
 - [ ] Зависимости зафиксированы в файле: `requirements.txt` или `pyproject.toml`.
 #### Не делать
