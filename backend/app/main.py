@@ -12,6 +12,7 @@ from .auth import router as auth_router
 from .db import init_db
 from .errors import install_error_handlers
 from .generation.graph import run_generation
+from .tracing import setup_tracing, shutdown_tracing
 from .validation import validate_body
 
 logger = logging.getLogger("uvicorn.error")
@@ -21,7 +22,9 @@ logger = logging.getLogger("uvicorn.error")
 async def lifespan(_: FastAPI):
     path = init_db()
     logger.info("SQLite: %s", path)
+    setup_tracing()
     yield
+    shutdown_tracing()
 
 
 app = FastAPI(title="Production Description Helper", lifespan=lifespan)

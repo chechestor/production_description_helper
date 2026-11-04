@@ -3,3 +3,5 @@ uvicorn[standard]==0.54.0
 python-dotenv==1.2.4
 langchain-openai==1.7.4
 langgraph==1.2.19
+arize-phoenix-otel==0.17.2
+openinference-instrumentation-langchain==0.1.81

@@ -36,6 +36,7 @@ def settings(tmp_path, monkeypatch):
         database_path=str(tmp_path / "app.db"),
         auth_login="user",
         auth_password="user",
+        phoenix_collector_endpoint="",  # трассировка в тестах отключена
     )
     monkeypatch.setattr(config, "settings", test_settings)
     return test_settings
