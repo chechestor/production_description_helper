@@ -52,15 +52,30 @@ def same_value_parts(value: str) -> bool:
     return len(variants) == 1 and " / " in value
 
 
+def collapse_same_value(value: str, product: dict) -> str:
+    """«A / B», где A и B — одно значение в разном написании, → один вариант.
+
+    Берётся вариант, который дословно есть в specs; иначе — совпадающий с specs после
+    нормализации; иначе — первый. Настоящие противоречия (разные значения) не трогаются.
+    """
+    if not same_value_parts(value):
+        return value
+    variants = [v.strip() for v in value.split(" / ") if v.strip()]
+    spec_values = [str(v) for v in (product.get("specs") or {}).values()]
+    for variant in variants:
+        if any(variant in s for s in spec_values):
+            return variant
+    normalized_specs = [normalize(s) for s in spec_values]
+    for variant in variants:
+        if any(normalize(variant) in s for s in normalized_specs):
+            return variant
+    return variants[0]
+
+
 def number_found(number: str, haystack: str) -> bool:
     """e): число встречается во входе как отдельное число, а не часть другого."""
     n = re.escape(normalize(number))
     return re.search(rf"(?<![\d.]){n}(?!\d|\.\d)", haystack) is not None
-
-
-def verify_specs(card: ModelCard, product: dict) -> list[bool]:
-    haystack = input_text(product)
-    return [spec.value == NO_DATA or value_found(spec.value, haystack) for spec in card.key_specs]
 
 
 def find_violations(card: ModelCard, product: dict) -> list[str]:

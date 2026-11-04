@@ -61,11 +61,18 @@ def _assemble(state: GenerationState) -> GenerationState:
     if model_card is None:
         raise ApiError(502, "llm_bad_response", "Модель вернула некорректный ответ")
 
-    verified = checks.verify_specs(model_card, state["product"])
+    product = state["product"]
+    haystack = checks.input_text(product)
+    key_specs = []
+    for spec in model_card.key_specs:
+        # «2.5 / 2,5» — одно значение в разном написании: оставляем один вариант, как в specs
+        value = checks.collapse_same_value(spec.value, product)
+        verified = value == NO_DATA or checks.value_found(value, haystack)
+        key_specs.append(KeySpec(name=spec.name, value=value, verified=verified))
     card = Card(
         seo_title=model_card.seo_title,
         seo_description=model_card.seo_description,
-        key_specs=[KeySpec(name=s.name, value=s.value, verified=v) for s, v in zip(model_card.key_specs, verified)],
+        key_specs=key_specs,
         search_queries=model_card.search_queries,
         commercial=model_card.commercial,
     )
@@ -77,7 +84,7 @@ def _assemble(state: GenerationState) -> GenerationState:
             missing.append(item)
 
     warnings = list(state.get("input_warnings", []))
-    values = {s.name: s.value for s in card.key_specs}
+    values = {s.name: s.value for s in model_card.key_specs}  # значения модели до схлопывания дублей
     warnings += [
         f"противоречие в данных: {p}"
         for p in model_card.data_conflicts

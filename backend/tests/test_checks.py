@@ -106,6 +106,49 @@ def test_number_must_match_whole():
     assert not checks.number_found("5", haystack)  # «5» есть только внутри «1,5», «2,5», «50»
 
 
+# --- одно значение в разном написании ---
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2.5 / 2,5", "2.5"),  # specs: «2.5», описание: «2,5»
+        ("2,5 / 2.5", "2.5"),  # порядок не важен — берётся вариант из specs
+        ("IP-40 / IP40", "IP-40"),  # specs: «IP-40», описание: «IP40»
+        ("IP40 / IP-40", "IP-40"),
+        ("М12х1,5, G1/4 / M12×1,5", "М12х1,5, G1/4 / M12×1,5"),  # разные значения — не трогаем
+        ("2.5", "2.5"),
+        ("данных нет", "данных нет"),
+    ],
+)
+def test_collapse_same_value(value, expected):
+    assert checks.collapse_same_value(value, tm210()) == expected
+
+
+def test_collapse_prefers_first_when_not_in_specs():
+    product = {"name": "x", "specs": {}, "description": "точность 0,5 %"}
+    assert checks.collapse_same_value("0,5 / 0.5", product) == "0,5"
+
+
+def test_assemble_collapses_duplicates_and_keeps_real_conflict():
+    card = make_card(
+        key_specs=[
+            {"name": "Класс точности", "value": "2.5 / 2,5"},
+            {"name": "Степень защиты", "value": "IP-40 / IP40"},
+            {"name": "Резьба присоединения", "value": "М12х1,5, G1/4 / M12×1,5"},
+        ],
+        data_conflicts=["Класс точности", "Степень защиты", "Резьба присоединения"],
+    )
+    response = run(FakeGenerator(card))
+    specs = {s["name"]: s for s in response["card"]["key_specs"]}
+    assert specs["Класс точности"] == {"name": "Класс точности", "value": "2.5", "verified": True}
+    assert specs["Степень защиты"] == {"name": "Степень защиты", "value": "IP-40", "verified": True}
+    assert specs["Резьба присоединения"]["value"] == "М12х1,5, G1/4 / M12×1,5"
+    # Пометка о противоречии — только для настоящего противоречия
+    assert response["warnings"] == ["противоречие в данных: Резьба присоединения"]
+    assert "| Класс точности | 2.5 |" in response["markdown"]
+
+
 # --- повтор ---
 
 
