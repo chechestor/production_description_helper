@@ -1,0 +1,25 @@
+# Секреты
+.env
+.claude/local/
+
+# Черновики ролей
+**/scratch/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+
+# Данные, переживающие перезапуск контейнеров (кроме .gitkeep)
+data/*
+!data/.gitkeep
+
+# ТЗ и переписка с работодателем, архив команды агентов
+.task/
+claude-team.zip
