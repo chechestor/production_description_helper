@@ -2,6 +2,7 @@
 
 from typing import Any, TypedDict
 
+import openai
 from langchain_core.exceptions import OutputParserException
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
@@ -37,7 +38,7 @@ def _generate(state: GenerationState, generator: llm.CardGenerator) -> Generatio
         card = generator(messages)
         if not isinstance(card, ModelCard):
             card = ModelCard.model_validate(card)
-    except (OutputParserException, ValidationError):
+    except (OutputParserException, ValidationError, *llm.SCHEMA_ERRORS):
         card = None
     return {"card": card, "attempts": state.get("attempts", 0) + 1}
 
@@ -105,14 +106,18 @@ def build_graph(generator: llm.CardGenerator):
 def run_generation(validated: ValidatedInput) -> dict:
     generator = llm.make_generator()
     graph = build_graph(generator)
-    final = graph.invoke(
-        {
-            "product": validated.product.as_dict(),
-            "input_missing": validated.missing_fields,
-            "input_warnings": validated.warnings,
-            "attempts": 0,
-            "violations": [],
-        },
-        {"run_name": "generate_card"},
-    )
+    try:
+        final = graph.invoke(
+            {
+                "product": validated.product.as_dict(),
+                "input_missing": validated.missing_fields,
+                "input_warnings": validated.warnings,
+                "attempts": 0,
+                "violations": [],
+            },
+            {"run_name": "generate_card"},
+        )
+    except openai.OpenAIError as exc:
+        # Трасса в Phoenix к этому моменту уже закрыта со статусом ошибки (F006)
+        raise llm.map_openai_error(exc) from None
     return final["response"]
