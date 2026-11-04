@@ -120,29 +120,31 @@ curl -b cookies.txt -H 'Content-Type: application/json' \
 
 Форма входа по логину и паролю из `.env`.
 
-<!-- TODO: положить скриншот docs/screenshots/01-login.png -->
 ![Экран входа](docs/screenshots/01-login.png)
 
-### Форма сразу после входа
+### Генерация для ТМ-210
 
-Основной экран: поле для JSON товара и кнопки примеров.
+Вход из [`examples/input/tm-210.json`](examples/input/tm-210.json) и карточка: «Питание» и «Интерфейсы» — «данных нет».
 
-<!-- TODO: положить скриншот docs/screenshots/02-empty-form.png -->
-![Форма сразу после входа](docs/screenshots/02-empty-form.png)
+![Генерация для ТМ-210](docs/screenshots/02-tm-210.png)
 
-### Заполненная форма
+### Генерация для МЕГЕОН 51020
 
-Форма с данными товара.
+Вход из [`examples/input/megeon-51020.json`](examples/input/megeon-51020.json) и карточка: интерфейс USB взят из описания, «Тип корпуса» — «данных нет».
 
-<!-- TODO: положить скриншот docs/screenshots/03-filled-form.png -->
-![Заполненная форма](docs/screenshots/03-filled-form.png)
+![Генерация для МЕГЕОН 51020](docs/screenshots/03-megeon-51020.png)
+
+### Генерация при недостаточных данных
+
+Вход только с названием и производителем ([`examples/input/incomplete-pd100.json`](examples/input/incomplete-pd100.json)): недостающие данные, «данных нет» и предупреждение о длине описания.
+
+![Генерация при недостаточных данных](docs/screenshots/04-incomplete-data.png)
 
 ### Трасса генерации в Phoenix
 
-Трасса одного запроса `POST /api/generate`: узлы графа `generate`, `check`, `assemble` и вызов модели с промптом, ответом и токенами.
+Трасса запроса для неполного входа: повтор `generate → check` после нарушения, затем `assemble`. Справа вызов `ChatOpenAI` с параметрами модели, промптом, ответом, токенами и стоимостью.
 
-<!-- TODO: положить скриншот docs/screenshots/04-phoenix-trace.png -->
-![Трасса генерации в Phoenix](docs/screenshots/04-phoenix-trace.png)
+![Трасса генерации в Phoenix](docs/screenshots/05-phoenix-trace.png)
 
 ## Формат входа и выхода, коды ошибок
 
