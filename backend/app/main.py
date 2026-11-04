@@ -3,13 +3,14 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 
 from . import config
 from .auth import require_session
 from .auth import router as auth_router
 from .db import init_db
 from .errors import ApiError, install_error_handlers
+from .validation import validate_body
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -32,6 +33,14 @@ def health() -> dict:
 
 
 @app.post("/api/generate")
-def generate(_login: str = Depends(require_session)) -> dict:
-    # Проверка входа (F003) уже пройдена; приём JSON и генерация — F004/F005
-    raise ApiError(501, "not_implemented", "Генерация ещё не реализована")
+async def generate(request: Request, _login: str = Depends(require_session)) -> dict:
+    # Сначала вход (F003, зависимость), потом JSON (F004): тело читается вручную,
+    # чтобы битый JSON без входа давал 401, а не 400.
+    validated = validate_body(await request.body())
+    # Генерация — F005
+    raise ApiError(
+        501,
+        "not_implemented",
+        "Генерация ещё не реализована",
+        {"missing_fields": validated.missing_fields, "warnings": validated.warnings},
+    )
