@@ -4,12 +4,14 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
+from starlette.concurrency import run_in_threadpool
 
 from . import config
 from .auth import require_session
 from .auth import router as auth_router
 from .db import init_db
-from .errors import ApiError, install_error_handlers
+from .errors import install_error_handlers
+from .generation.graph import run_generation
 from .validation import validate_body
 
 logger = logging.getLogger("uvicorn.error")
@@ -37,10 +39,5 @@ async def generate(request: Request, _login: str = Depends(require_session)) -> 
     # Сначала вход (F003, зависимость), потом JSON (F004): тело читается вручную,
     # чтобы битый JSON без входа давал 401, а не 400.
     validated = validate_body(await request.body())
-    # Генерация — F005
-    raise ApiError(
-        501,
-        "not_implemented",
-        "Генерация ещё не реализована",
-        {"missing_fields": validated.missing_fields, "warnings": validated.warnings},
-    )
+    # Граф LangGraph синхронный: выполняется в пуле потоков, не блокируя сервер (F005)
+    return await run_in_threadpool(run_generation, validated)
