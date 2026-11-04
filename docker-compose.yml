@@ -1,0 +1,39 @@
+# Вся система одной командой: docker compose up --build
+# Настройки и ключ — только в .env (см. .env.example); здесь секретов нет.
+
+services:
+  phoenix:
+    image: arizephoenix/phoenix:version-20.27.0
+    environment:
+      PHOENIX_WORKING_DIR: /mnt/data
+    volumes:
+      - ./data/phoenix:/mnt/data
+    ports:
+      - "${PHOENIX_PORT:-6006}:6006"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      # В контейнере Phoenix доступен по имени сервиса
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:6006
+    volumes:
+      - ./data:/srv/data
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      - phoenix
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

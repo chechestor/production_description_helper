@@ -30,7 +30,7 @@
 ## Список задач
 
 - [x] F001. Каркас backend, конфиг ключа, .gitignore — готова к проверке
-- [ ] F002. Docker Compose (frontend, backend, Phoenix) одной командой, папка data/ и SQLite — готова к разработке
+- [x] F002. Docker Compose (frontend, backend, Phoenix) одной командой, папка data/ и SQLite — готова к проверке
 - [ ] F003. Авторизация по логину и паролю из .env — готова к разработке
 - [ ] F004. Приём и проверка входного JSON, отчёт о недостающих данных — готова к разработке
 - [ ] F005. Генерация карточки через OpenAI в графе LangGraph: промпт и формат ответа — готова к разработке
@@ -132,7 +132,7 @@
 #### Проверка
 
 ### F002. Docker Compose (frontend, backend, Phoenix) одной командой, папка data/ и SQLite
-- Статус: готова к разработке
+- Статус: готова к проверке
 - Родитель: F001
 - Приоритет: P1
 - Источник: Owner, 2026-11-04: «Я хочу, чтобы в проекте было несколько докер-контейнеров. Как минимум должен быть контейнер фронт-энд на React и контейнер бэк-энд на React со скриптом. И еще должен быть контейнер с Phoenix для вывода логов агентов. … Разворачивать всю систему контейнеров надо одной единственной командой Docker Compose.» Owner, 2026-11-04: «Да, FastAPI» — backend-контейнер на FastAPI, а не React.
@@ -185,6 +185,28 @@
 - Миграции (Alembic), отдельный сервер БД.
 - Хранение истории генераций, входов и выходов карточек, ключа API в БД.
 #### Разработка
+- Сделано (2026-11-04, разработчик):
+  - **`docker-compose.yml`** — три сервиса: `phoenix` (`arizephoenix/phoenix:version-20.27.0`), `backend`, `frontend`.
+    - Порты берутся из `.env`, значения по умолчанию 6006/8000/3000.
+    - `backend` получает настройки через `env_file: .env`.
+    - `PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006` задан в compose явно, чтобы в контейнере он работал, даже если в `.env` для локального запуска стоит `localhost`.
+    - `depends_on`: phoenix → backend → frontend. Backend к Phoenix пока не обращается (это F006), поэтому не падает, если Phoenix ещё не готов.
+    - Bind-mount: `./data` → `/srv/data` в backend, `./data/phoenix` → `/mnt/data` в Phoenix (`PHOENIX_WORKING_DIR`).
+  - **`backend/Dockerfile`** — образ `python:3.12-slim`, корень проекта `/srv`. Относительный `DATABASE_PATH` считается от корня проекта и локально, и в контейнере.
+  - **`backend/app/db.py`** — при старте создаётся папка, файл БД и таблица `sessions` (id, login, created_at, expires_at) через `CREATE TABLE IF NOT EXISTS`. Модуль `sqlite3` стандартный, новых зависимостей нет.
+  - **`frontend/`** — заглушка на React 19 + Vite 8: название сервиса и результат `/api/health`. `frontend/Dockerfile` — сборка в `node:22-alpine`, раздача через `nginx:1.29-alpine`. `/api/` проксируется на `backend:8000`.
+    - Контекст сборки обоих образов — корень репозитория, чтобы в F009 в образ попали `examples/`.
+    - В dev-режиме (`npm run dev`) `/api` проксируется на `localhost:8000`.
+  - **`.dockerignore`** — исключает `.env`, `.claude/`, `.task/`, `.git/`, `data/`, `node_modules/`, `.venv/`, `__pycache__/`, `frontend/dist/`.
+  - **`data/.gitkeep`** добавлен.
+- Зависимости (npm, на усмотрение разработчика): `react@19.3.1`, `react-dom@19.3.1`, `vite@8.3.5`, `@vitejs/plugin-react@6.2.1`; `package-lock.json` закоммичен. Образы: `python:3.12-slim`, `node:22-alpine`, `nginx:1.29-alpine`, `arizephoenix/phoenix:version-20.27.0` — теги проверены на Docker Hub.
+- Проверено локально без Docker:
+  - backend при старте создаёт `data/app.db` с таблицей `sessions`;
+  - запись в `sessions` переживает перезапуск;
+  - после удаления `app.db` БД создаётся заново, пустой;
+  - `npm run build` во `frontend/` проходит.
+- Не проверено, **проверяет Owner**: все пункты с `docker compose` — подъём трёх сервисов, UI/health/Phoenix в браузере, `down`/`up`, появление `data/phoenix/`, отсутствие `.env` в образе (`docker compose run --rm backend ls -a /srv`).
+- Платных вызовов LLM: 0.
 #### Проверка
 
 ### F003. Авторизация по логину и паролю из .env
