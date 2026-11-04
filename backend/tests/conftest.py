@@ -15,6 +15,8 @@ def settings(tmp_path, monkeypatch):
         config.settings,
         openai_api_key="",
         database_path=str(tmp_path / "app.db"),
+        auth_login="user",
+        auth_password="user",
     )
     monkeypatch.setattr(config, "settings", test_settings)
     return test_settings
@@ -26,3 +28,11 @@ def client(settings):
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def auth_client(client):
+    """Клиент с выполненным входом (cookie session)."""
+    response = client.post("/api/login", json={"login": "user", "password": "user"})
+    assert response.status_code == 200
+    return client

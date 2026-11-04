@@ -4,6 +4,8 @@
 """
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from . import config
@@ -25,10 +27,16 @@ def database_file() -> Path:
     return path if path.is_absolute() else config.PROJECT_ROOT / path
 
 
-def connect() -> sqlite3.Connection:
+@contextmanager
+def connect() -> Iterator[sqlite3.Connection]:
+    """Соединение с БД: commit при успехе, rollback при ошибке, всегда close."""
     conn = sqlite3.connect(database_file())
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db() -> Path:
@@ -36,5 +44,4 @@ def init_db() -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA)
-    conn.close()
     return path
