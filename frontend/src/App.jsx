@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import Generator from "./Generator.jsx";
 import Login from "./Login.jsx";
 
-// Экран входа (F003) и страница-заглушка; основной экран добавит F009.
+// Экран входа (F003) и основной экран генерации (F009).
 export default function App() {
   const [user, setUser] = useState(undefined); // undefined — проверяю, null — не вошёл
   const [health, setHealth] = useState(null);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    api("/api/me").then((r) => setUser(r.ok ? r.data.login : null));
-    api("/api/health").then((r) => (r.ok ? setHealth(r.data) : setError(r.error.message)));
+    api("/api/me").then((r) => setUser(r.ok ? r.data.login : r.status === 401 ? null : false));
+    api("/api/health").then((r) => setHealth(r.ok ? r.data : { error: r.error.message }));
   }, []);
 
   async function logout() {
@@ -19,31 +19,26 @@ export default function App() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 720, margin: "40px auto", padding: "0 16px" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-        <h1 style={{ fontSize: 24 }}>Production Description Helper</h1>
+    <main>
+      <header>
+        <h1>Production Description Helper</h1>
         {user && (
-          <span>
+          <span className="user">
             {user} <button onClick={logout}>Выйти</button>
           </span>
         )}
       </header>
+      <p className="lead">Черновик карточки товара для B2B-магазина по данным о контрольно-измерительном приборе.</p>
+
+      {health?.error && <p className="error">{health.error}</p>}
+      {health && !health.error && !health.llm_configured && (
+        <p className="error">Ключ OpenAI не задан (OPENAI_API_KEY в .env) — генерация вернёт ошибку.</p>
+      )}
 
       {user === undefined && <p>Проверяю вход…</p>}
+      {user === false && <p className="error">Не удалось проверить вход: backend недоступен.</p>}
       {user === null && <Login onLogin={setUser} />}
-      {user && (
-        <>
-          <p>Черновик карточки товара для B2B-магазина по данным о приборе.</p>
-          <h2>Состояние backend</h2>
-          {error && <p style={{ color: "#b00020" }}>{error}</p>}
-          {health && (
-            <ul>
-              <li>Статус: {health.status}</li>
-              <li>Ключ LLM: {health.llm_configured ? "задан" : "не задан"}</li>
-            </ul>
-          )}
-        </>
-      )}
+      {user && <Generator onUnauthorized={() => setUser(null)} />}
     </main>
   );
 }
